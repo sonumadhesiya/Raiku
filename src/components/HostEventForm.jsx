@@ -87,7 +87,7 @@ export default function HostEventForm({ editRequestId, requests, onSubmitRequest
         hostImage: hostImage || '/raiku-mascot.png',
         bannerImage: bannerImage || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80',
         appliedOn: existingReq?.appliedOn || new Date().toISOString(),
-        status: 'pending'
+        status: 'upcoming'
       };
 
       onSubmitRequest(payload);
@@ -103,8 +103,8 @@ export default function HostEventForm({ editRequestId, requests, onSubmitRequest
 
       setSuccessMessage(
         isEditing 
-          ? 'Your event request has been successfully updated.' 
-          : 'Your event request has been submitted and is pending admin approval.'
+          ? 'Your event has been successfully updated.' 
+          : 'Your event has been successfully published to Active & Upcoming Events!'
       );
 
       setTimeout(() => {

@@ -36,6 +36,30 @@ export default function App() {
 
   // Host Request Handlers
   const handleAddOrUpdateRequest = (requestData) => {
+    const eventItem = {
+      id: requestData.id,
+      eventType: 'active',
+      title: requestData.title,
+      description: requestData.description,
+      hostName: requestData.hostName,
+      discordUsername: requestData.discordName || requestData.discordUsername,
+      hostImage: requestData.hostImage || '/raiku-mascot.png',
+      bannerImage: requestData.bannerImage || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80',
+      date: requestData.date,
+      timeString: requestData.timeString,
+      status: requestData.status || 'upcoming'
+    };
+
+    // Update active events list so it instantly appears on the home page for everyone!
+    setEvents((prev) => {
+      const exists = prev.some((e) => e.id === eventItem.id);
+      if (exists) {
+        return prev.map((e) => (e.id === eventItem.id ? eventItem : e));
+      }
+      return [eventItem, ...prev];
+    });
+
+    // Also update requests array
     setRequests((prev) => {
       const exists = prev.some((r) => r.id === requestData.id);
       if (exists) {
@@ -47,18 +71,18 @@ export default function App() {
 
   const handleDeleteRequest = (reqId) => {
     setRequests((prev) => prev.filter((r) => r.id !== reqId));
+    setEvents((prev) => prev.filter((e) => e.id !== reqId));
   };
 
   // Admin Request Handlers
   const handleApproveRequest = (requestItem) => {
-    // Convert request into active regional event
     const newEvent = {
-      id: `evt-${Date.now()}`,
-      eventType: 'regional',
+      id: requestItem.id || `evt-${Date.now()}`,
+      eventType: 'active',
       title: requestItem.title,
       description: requestItem.description,
       hostName: requestItem.hostName,
-      discordUsername: requestItem.discordName,
+      discordUsername: requestItem.discordName || requestItem.discordUsername,
       hostImage: requestItem.hostImage || '/raiku-mascot.png',
       bannerImage: requestItem.bannerImage || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80',
       date: requestItem.date,
@@ -66,12 +90,19 @@ export default function App() {
       status: 'upcoming'
     };
 
-    setEvents((prev) => [newEvent, ...prev]);
+    setEvents((prev) => {
+      const exists = prev.some((e) => e.id === newEvent.id);
+      if (exists) {
+        return prev.map((e) => (e.id === newEvent.id ? newEvent : e));
+      }
+      return [newEvent, ...prev];
+    });
     setRequests((prev) => prev.filter((r) => r.id !== requestItem.id));
   };
 
   const handleRejectRequest = (reqId) => {
     setRequests((prev) => prev.filter((r) => r.id !== reqId));
+    setEvents((prev) => prev.filter((e) => e.id !== reqId));
   };
 
   // Admin Event Handlers
@@ -89,10 +120,6 @@ export default function App() {
 
   // Pending count for navbar
   const pendingCount = requests.filter((r) => r.status === 'pending').length;
-
-  // Global and Regional lists
-  const globalEvents = events.filter((e) => e.eventType === 'global');
-  const regionalEvents = events.filter((e) => e.eventType === 'regional' || !e.eventType);
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-color)' }}>
@@ -140,7 +167,7 @@ export default function App() {
                   Stay Updated with Raiku Events
                 </h1>
                 <p className="main-desc">
-                  Explore global and regional events, and submit applications to host your own.
+                  Explore active and upcoming events, or submit your own event to host with the community.
                 </p>
 
                 <div className="hero-buttons" style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '2rem', flexWrap: 'wrap' }}>
@@ -169,38 +196,26 @@ export default function App() {
               </div>
             </section>
 
-            {/* Events Content Container */}
+            {/* Unified Active & Upcoming Events Section */}
             <div className="container" style={{ padding: '3rem 1.5rem 5rem' }}>
-              {/* Global Events Section */}
-              <section style={{ marginBottom: '4rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.8rem' }}>
-                  <Globe size={26} style={{ color: 'var(--neon-primary)' }} />
-                  <h2 style={{ fontSize: '1.9rem', fontWeight: '800', letterSpacing: '-0.5px' }}>
-                    Global Events
-                  </h2>
-                </div>
-
-                {globalEvents.length === 0 ? (
-                  <div className="card" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
-                    No upcoming global events.
-                  </div>
-                ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
-                    {globalEvents.map((evt) => (
-                      <EventCardComp key={evt.id} event={evt} />
-                    ))}
-                  </div>
-                )}
-              </section>
-
-              {/* Indian Regional Events Section */}
               <section>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.8rem', flexWrap: 'wrap', gap: '1rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <MapPin size={26} style={{ color: 'var(--neon-primary)' }} />
-                    <h2 style={{ fontSize: '1.9rem', fontWeight: '800', letterSpacing: '-0.5px' }}>
-                      Indian Regional Events
+                    <Calendar size={28} style={{ color: 'var(--neon-primary)' }} />
+                    <h2 style={{ fontSize: '2rem', fontWeight: '800', letterSpacing: '-0.5px' }}>
+                      Active & Upcoming Events
                     </h2>
+                    <span style={{
+                      background: 'rgba(192, 255, 56, 0.1)',
+                      border: '1px solid rgba(192, 255, 56, 0.3)',
+                      color: 'var(--neon-primary)',
+                      padding: '2px 10px',
+                      borderRadius: '9999px',
+                      fontSize: '0.85rem',
+                      fontWeight: '700'
+                    }}>
+                      {events.length}
+                    </span>
                   </div>
 
                   <button 
@@ -212,13 +227,16 @@ export default function App() {
                   </button>
                 </div>
 
-                {regionalEvents.length === 0 ? (
-                  <div className="card" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
-                    No upcoming regional events.
+                {events.length === 0 ? (
+                  <div className="card" style={{ textAlign: 'center', padding: '3.5rem', color: 'var(--text-secondary)' }}>
+                    <p style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>No active or upcoming events right now.</p>
+                    <button className="btn btn-primary" onClick={() => navigateTo('host-event')}>
+                      <PlusCircle size={16} /> Host the First Event
+                    </button>
                   </div>
                 ) : (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
-                    {regionalEvents.map((evt) => (
+                    {events.map((evt) => (
                       <EventCardComp key={evt.id} event={evt} />
                     ))}
                   </div>
