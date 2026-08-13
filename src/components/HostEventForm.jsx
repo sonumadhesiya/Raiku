@@ -75,42 +75,55 @@ export default function HostEventForm({ editRequestId, requests, onSubmitRequest
 
     setIsSubmitting(true);
 
-    setTimeout(() => {
-      const payload = {
-        id: isEditing ? editRequestId : `req-${Date.now()}`,
-        hostName: hostName.trim(),
-        discordName: discordName.trim(),
-        title: title.trim(),
-        description: description.trim(),
-        date,
-        timeString: timeString || '18:00 IST',
-        hostImage: hostImage || '/raiku-mascot.png',
-        bannerImage: bannerImage || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80',
-        appliedOn: existingReq?.appliedOn || new Date().toISOString(),
-        status: 'upcoming'
-      };
+    const payload = {
+      id: isEditing ? editRequestId : `req-${Date.now()}`,
+      hostName: hostName.trim(),
+      discordName: discordName.trim(),
+      title: title.trim(),
+      description: description.trim(),
+      date,
+      timeString: timeString || '18:00 IST',
+      hostImage: hostImage || '/raiku-mascot.png',
+      bannerImage: bannerImage || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80',
+      appliedOn: existingReq?.appliedOn || new Date().toISOString(),
+      status: 'pending' // STAYS PENDING UNTIL ADMIN APPROVES!
+    };
 
-      onSubmitRequest(payload);
-      setIsSubmitting(false);
+    fetch('/api/host-request', {
+      method: isEditing ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(res => res.json())
+      .then(data => {
+        setIsSubmitting(false);
+        onSubmitRequest(payload);
 
-      // Trigger celebrate confetti
-      confetti({
-        particleCount: 80,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#C0FF38', '#e5ff80', '#86b817', '#ffffff']
+        // Trigger celebrate confetti
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#C0FF38', '#e5ff80', '#86b817', '#ffffff']
+        });
+
+        setSuccessMessage(
+          isEditing 
+            ? 'Your event request has been successfully updated.' 
+            : 'Your event request has been submitted and is pending admin approval.'
+        );
+
+        setTimeout(() => {
+          onCancel();
+        }, 1500);
+      })
+      .catch(err => {
+        console.error("API submission error, saving locally", err);
+        setIsSubmitting(false);
+        onSubmitRequest(payload);
+        setSuccessMessage('Submitted request (pending admin approval).');
+        setTimeout(() => { onCancel(); }, 1500);
       });
-
-      setSuccessMessage(
-        isEditing 
-          ? 'Your event has been successfully updated.' 
-          : 'Your event has been successfully published to Active & Upcoming Events!'
-      );
-
-      setTimeout(() => {
-        onCancel();
-      }, 1500);
-    }, 400);
   };
 
   return (

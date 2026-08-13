@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Navbar from './components/Navbar';
 import EventCardComp from './components/EventCard';
 import HostEventForm from './components/HostEventForm';
@@ -8,7 +8,7 @@ import {
   getStoredEvents, setStoredEvents, 
   getStoredRequests, setStoredRequests 
 } from './data/initialData';
-import { PlusCircle, Sparkles, Calendar, Globe, MapPin, Heart } from 'lucide-react';
+import { PlusCircle, Sparkles, Calendar } from 'lucide-react';
 
 export default function App() {
   // State management
@@ -18,14 +18,41 @@ export default function App() {
   const [editRequestId, setEditRequestId] = useState(null);
   const [isPendingModalOpen, setIsPendingModalOpen] = useState(false);
 
-  // Sync to local storage
-  useEffect(() => {
-    setStoredEvents(events);
-  }, [events]);
+  // Sync state to API and LocalStorage
+  const fetchLatestData = useCallback(async () => {
+    try {
+      const [eventsRes, requestsRes] = await Promise.all([
+        fetch('/api/events'),
+        fetch('/api/requests')
+      ]);
 
+      if (eventsRes.ok) {
+        const eventsData = await eventsRes.json();
+        setEvents(eventsData);
+        setStoredEvents(eventsData);
+      }
+      if (requestsRes.ok) {
+        const requestsData = await requestsRes.json();
+        setRequests(requestsData);
+        setStoredRequests(requestsData);
+      }
+    } catch (e) {
+      // Fallback silently to localStorage if API server is restarting
+    }
+  }, []);
+
+  // Poll server every 2 seconds for real-time cross-browser sync!
   useEffect(() => {
-    setStoredRequests(requests);
-  }, [requests]);
+    fetchLatestData();
+    const interval = setInterval(fetchLatestData, 2000);
+    const handleFocus = () => fetchLatestData();
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [fetchLatestData]);
 
   // Navigate helper
   const navigateTo = (view, editId = null) => {
@@ -34,32 +61,8 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Host Request Handlers
+  // Host Request Submission (Goes to PENDING)
   const handleAddOrUpdateRequest = (requestData) => {
-    const eventItem = {
-      id: requestData.id,
-      eventType: 'active',
-      title: requestData.title,
-      description: requestData.description,
-      hostName: requestData.hostName,
-      discordUsername: requestData.discordName || requestData.discordUsername,
-      hostImage: requestData.hostImage || '/raiku-mascot.png',
-      bannerImage: requestData.bannerImage || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80',
-      date: requestData.date,
-      timeString: requestData.timeString,
-      status: requestData.status || 'upcoming'
-    };
-
-    // Update active events list so it instantly appears on the home page for everyone!
-    setEvents((prev) => {
-      const exists = prev.some((e) => e.id === eventItem.id);
-      if (exists) {
-        return prev.map((e) => (e.id === eventItem.id ? eventItem : e));
-      }
-      return [eventItem, ...prev];
-    });
-
-    // Also update requests array
     setRequests((prev) => {
       const exists = prev.some((r) => r.id === requestData.id);
       if (exists) {
@@ -67,58 +70,84 @@ export default function App() {
       }
       return [requestData, ...prev];
     });
+
+    fetch('/api/host-request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestData)
+    }).then(() => fetchLatestData());
   };
 
   const handleDeleteRequest = (reqId) => {
     setRequests((prev) => prev.filter((r) => r.id !== reqId));
     setEvents((prev) => prev.filter((e) => e.id !== reqId));
+
+    fetch(`/api/host-request/${reqId}`, { method: 'DELETE' })
+      .then(() => fetchLatestData());
   };
 
-  // Admin Request Handlers
+  // Admin Approves Request -> NOW Moves to Active Events!
   const handleApproveRequest = (requestItem) => {
-    const newEvent = {
-      id: requestItem.id || `evt-${Date.now()}`,
-      eventType: 'active',
-      title: requestItem.title,
-      description: requestItem.description,
-      hostName: requestItem.hostName,
-      discordUsername: requestItem.discordName || requestItem.discordUsername,
-      hostImage: requestItem.hostImage || '/raiku-mascot.png',
-      bannerImage: requestItem.bannerImage || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80',
-      date: requestItem.date,
-      timeString: requestItem.timeString,
-      status: 'upcoming'
-    };
-
-    setEvents((prev) => {
-      const exists = prev.some((e) => e.id === newEvent.id);
-      if (exists) {
-        return prev.map((e) => (e.id === newEvent.id ? newEvent : e));
-      }
-      return [newEvent, ...prev];
-    });
-    setRequests((prev) => prev.filter((r) => r.id !== requestItem.id));
+    fetch(`/api/admin/requests/${requestItem.id}/approve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestItem)
+    })
+      .then(res => res.json())
+      .then(() => fetchLatestData())
+      .catch(() => {
+        // Fallback for offline local state
+        const newEvent = {
+          id: requestItem.id || `evt-${Date.now()}`,
+          eventType: 'active',
+          title: requestItem.title,
+          description: requestItem.description,
+          hostName: requestItem.hostName,
+          discordUsername: requestItem.discordName || requestItem.discordUsername,
+          hostImage: requestItem.hostImage || '/raiku-mascot.png',
+          bannerImage: requestItem.bannerImage || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80',
+          date: requestItem.date,
+          timeString: requestItem.timeString,
+          status: 'upcoming'
+        };
+        setEvents(prev => [newEvent, ...prev]);
+        setRequests(prev => prev.filter(r => r.id !== requestItem.id));
+      });
   };
 
+  // Admin Rejects Request
   const handleRejectRequest = (reqId) => {
     setRequests((prev) => prev.filter((r) => r.id !== reqId));
-    setEvents((prev) => prev.filter((e) => e.id !== reqId));
+    fetch(`/api/admin/requests/${reqId}/reject`, { method: 'POST' })
+      .then(() => fetchLatestData());
   };
 
-  // Admin Event Handlers
+  // Admin Direct Event Handlers
   const handleCreateEvent = (newEvent) => {
     setEvents((prev) => [newEvent, ...prev]);
+    fetch('/api/admin/events', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newEvent)
+    }).then(() => fetchLatestData());
   };
 
   const handleUpdateEvent = (updatedEvent) => {
     setEvents((prev) => prev.map((e) => (e.id === updatedEvent.id ? updatedEvent : e)));
+    fetch(`/api/admin/events/${updatedEvent.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatedEvent)
+    }).then(() => fetchLatestData());
   };
 
   const handleDeleteEvent = (eventId) => {
     setEvents((prev) => prev.filter((e) => e.id !== eventId));
+    fetch(`/api/admin/events/${eventId}`, { method: 'DELETE' })
+      .then(() => fetchLatestData());
   };
 
-  // Pending count for navbar
+  // Pending count for navbar badge
   const pendingCount = requests.filter((r) => r.status === 'pending').length;
 
   return (
@@ -167,7 +196,7 @@ export default function App() {
                   Stay Updated with Raiku Events
                 </h1>
                 <p className="main-desc">
-                  Explore active and upcoming events, or submit your own event to host with the community.
+                  Explore active and upcoming events, or submit your own event request to host with the community.
                 </p>
 
                 <div className="hero-buttons" style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '2rem', flexWrap: 'wrap' }}>
@@ -196,7 +225,7 @@ export default function App() {
               </div>
             </section>
 
-            {/* Unified Active & Upcoming Events Section */}
+            {/* Single Section: Active & Upcoming Events */}
             <div className="container" style={{ padding: '3rem 1.5rem 5rem' }}>
               <section>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.8rem', flexWrap: 'wrap', gap: '1rem' }}>
@@ -231,7 +260,7 @@ export default function App() {
                   <div className="card" style={{ textAlign: 'center', padding: '3.5rem', color: 'var(--text-secondary)' }}>
                     <p style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>No active or upcoming events right now.</p>
                     <button className="btn btn-primary" onClick={() => navigateTo('host-event')}>
-                      <PlusCircle size={16} /> Host the First Event
+                      <PlusCircle size={16} /> Host an Event
                     </button>
                   </div>
                 ) : (
