@@ -143,7 +143,7 @@ export default function App() {
                   Explore global and regional events, and submit applications to host your own.
                 </p>
 
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '2rem', flexWrap: 'wrap' }}>
+                <div className="hero-buttons" style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '2rem', flexWrap: 'wrap' }}>
                   {pendingCount > 0 && (
                     <button 
                       className="btn btn-secondary" 
@@ -170,7 +170,7 @@ export default function App() {
             </section>
 
             {/* Events Content Container */}
-            <div className="container" style={{ padding: '3.5rem 2rem 5rem' }}>
+            <div className="container" style={{ padding: '3rem 1.5rem 5rem' }}>
               {/* Global Events Section */}
               <section style={{ marginBottom: '4rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.8rem' }}>
@@ -185,7 +185,7 @@ export default function App() {
                     No upcoming global events.
                   </div>
                 ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '2rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
                     {globalEvents.map((evt) => (
                       <EventCardComp key={evt.id} event={evt} />
                     ))}
@@ -217,7 +217,7 @@ export default function App() {
                     No upcoming regional events.
                   </div>
                 ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '2rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
                     {regionalEvents.map((evt) => (
                       <EventCardComp key={evt.id} event={evt} />
                     ))}

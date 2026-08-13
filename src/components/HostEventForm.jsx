@@ -282,7 +282,7 @@ export default function HostEventForm({ editRequestId, requests, onSubmitRequest
           </div>
 
           {/* Date & Time Row */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div className="form-group">
               <label className="form-label">Event Date (IST) *</label>
               <input 

@@ -13,6 +13,7 @@ export default function Navbar({ pendingCount, onOpenPendingModal, currentView, 
           <img src="/raiku-icon.png" alt="Raiku Icon" className="logo-img" style={{ height: '36px' }} />
           <img src="/raiku-text-outlined.png" alt="RAIKU" className="logo-text-img" style={{ height: '24px' }} />
           <span 
+            className="logo-badge"
             style={{ 
               fontSize: '0.65rem', 
               background: 'var(--neon-gradient)', 
@@ -29,36 +30,36 @@ export default function Navbar({ pendingCount, onOpenPendingModal, currentView, 
           </span>
         </a>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div className="nav-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
           {pendingCount > 0 && (
             <button 
               className="btn btn-secondary"
               onClick={onOpenPendingModal}
               style={{
                 fontSize: '0.85rem',
-                padding: '0.45rem 0.9rem',
+                padding: '0.45rem 0.85rem',
                 borderColor: 'rgba(192, 255, 56, 0.4)',
                 background: 'rgba(192, 255, 56, 0.08)'
               }}
             >
-              <FileText size={16} /> View Pending Host Requests ({pendingCount})
+              <FileText size={16} /> <span>Pending ({pendingCount})</span>
             </button>
           )}
 
           <button 
             className="btn btn-primary"
             onClick={() => navigateTo('host-event')}
-            style={{ fontSize: '0.85rem', padding: '0.45rem 1.1rem' }}
+            style={{ fontSize: '0.85rem', padding: '0.45rem 1rem' }}
           >
-            <PlusCircle size={16} /> Host an Event
+            <PlusCircle size={16} /> <span>Host an Event</span>
           </button>
 
           <button 
             className="btn btn-secondary"
             onClick={() => navigateTo('admin')}
-            style={{ fontSize: '0.85rem', padding: '0.45rem 0.9rem' }}
+            style={{ fontSize: '0.85rem', padding: '0.45rem 0.85rem' }}
           >
-            <ShieldAlert size={16} /> Admin
+            <ShieldAlert size={16} /> <span>Admin</span>
           </button>
         </div>
       </div>
