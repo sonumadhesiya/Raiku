@@ -61,14 +61,28 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Host Request Submission (Goes to PENDING)
+  // Host Event Submission (Instantly Published & Shared!)
   const handleAddOrUpdateRequest = (requestData) => {
-    setRequests((prev) => {
-      const exists = prev.some((r) => r.id === requestData.id);
+    const eventItem = {
+      id: requestData.id,
+      eventType: 'active',
+      title: requestData.title,
+      description: requestData.description,
+      hostName: requestData.hostName,
+      discordUsername: requestData.discordName || requestData.discordUsername,
+      hostImage: requestData.hostImage || '/raiku-mascot.png',
+      bannerImage: requestData.bannerImage || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80',
+      date: requestData.date,
+      timeString: requestData.timeString,
+      status: 'upcoming'
+    };
+
+    setEvents((prev) => {
+      const exists = prev.some((e) => e.id === eventItem.id);
       if (exists) {
-        return prev.map((r) => (r.id === requestData.id ? requestData : r));
+        return prev.map((e) => (e.id === eventItem.id ? eventItem : e));
       }
-      return [requestData, ...prev];
+      return [eventItem, ...prev];
     });
 
     fetch('/api/host-request', {

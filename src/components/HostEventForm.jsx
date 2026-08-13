@@ -86,7 +86,7 @@ export default function HostEventForm({ editRequestId, requests, onSubmitRequest
       hostImage: hostImage || '/raiku-mascot.png',
       bannerImage: bannerImage || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80',
       appliedOn: existingReq?.appliedOn || new Date().toISOString(),
-      status: 'pending' // STAYS PENDING UNTIL ADMIN APPROVES!
+      status: 'upcoming'
     };
 
     fetch('/api/host-request', {
@@ -109,8 +109,8 @@ export default function HostEventForm({ editRequestId, requests, onSubmitRequest
 
         setSuccessMessage(
           isEditing 
-            ? 'Your event request has been successfully updated.' 
-            : 'Your event request has been submitted and is pending admin approval.'
+            ? 'Your event has been successfully updated.' 
+            : 'Your event has been published and is now live for all visitors under Active & Upcoming Events!'
         );
 
         setTimeout(() => {
@@ -118,10 +118,10 @@ export default function HostEventForm({ editRequestId, requests, onSubmitRequest
         }, 1500);
       })
       .catch(err => {
-        console.error("API submission error, saving locally", err);
+        console.error("API submission error", err);
         setIsSubmitting(false);
         onSubmitRequest(payload);
-        setSuccessMessage('Submitted request (pending admin approval).');
+        setSuccessMessage('Event created successfully.');
         setTimeout(() => { onCancel(); }, 1500);
       });
   };

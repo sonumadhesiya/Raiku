@@ -49,36 +49,51 @@ app.get('/api/requests', (req, res) => {
   res.json(db.requests || []);
 });
 
-// POST /api/host-request - Submit a new host event request (goes to PENDING!)
+// POST /api/host-request - Submit a new event (AUTOMATICALLY PUBLISHED & SHARED FOR ALL USERS/BROWSERS!)
 app.post('/api/host-request', (req, res) => {
   const db = readDB();
-  const requestData = req.body;
+  const data = req.body;
   
-  const newRequest = {
-    id: requestData.id || `req-${Date.now()}`,
-    hostName: requestData.hostName,
-    discordName: requestData.discordName || requestData.discordUsername || '@user',
-    title: requestData.title,
-    description: requestData.description,
-    date: requestData.date,
-    timeString: requestData.timeString || '18:00 IST',
-    hostImage: requestData.hostImage || '/raiku-mascot.png',
-    bannerImage: requestData.bannerImage || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80',
-    appliedOn: requestData.appliedOn || new Date().toISOString(),
-    status: 'pending' // STAYS PENDING UNTIL ADMIN APPROVES!
+  const eventId = data.id || `evt-${Date.now()}`;
+  const newEvent = {
+    id: eventId,
+    eventType: 'active',
+    title: data.title,
+    description: data.description,
+    hostName: data.hostName,
+    discordUsername: data.discordName || data.discordUsername || '@user',
+    hostImage: data.hostImage || '/raiku-mascot.png',
+    bannerImage: data.bannerImage || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80',
+    date: data.date,
+    timeString: data.timeString || '18:00 IST',
+    status: 'upcoming'
   };
 
-  // Replace if existing, or add to requests
-  const existingIdx = db.requests.findIndex(r => r.id === newRequest.id);
-  if (existingIdx >= 0) {
-    db.requests[existingIdx] = newRequest;
+  const newRequest = {
+    ...newEvent,
+    discordName: newEvent.discordUsername,
+    appliedOn: data.appliedOn || new Date().toISOString()
+  };
+
+  // Add/update in events (Active list for everyone!)
+  const existingEvtIdx = db.events.findIndex(e => e.id === eventId);
+  if (existingEvtIdx >= 0) {
+    db.events[existingEvtIdx] = newEvent;
+  } else {
+    db.events.unshift(newEvent);
+  }
+
+  // Add/update in requests
+  const existingReqIdx = db.requests.findIndex(r => r.id === eventId);
+  if (existingReqIdx >= 0) {
+    db.requests[existingReqIdx] = newRequest;
   } else {
     db.requests.unshift(newRequest);
   }
 
   writeDB(db);
-  console.log(`[API] New Host Request submitted: "${newRequest.title}" by ${newRequest.hostName} (Status: PENDING)`);
-  res.json({ success: true, request: newRequest });
+  console.log(`[API] New Event PUBLISHED globally: "${newEvent.title}" by ${newEvent.hostName}. Total events: ${db.events.length}`);
+  res.json({ success: true, event: newEvent, request: newRequest });
 });
 
 // PUT /api/host-request/:id - Update pending request
